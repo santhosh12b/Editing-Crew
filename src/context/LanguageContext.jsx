@@ -33,9 +33,9 @@ export function LanguageProvider({ children }) {
   const currentLanguageObj = languages.find(l => l.code === currentLang) || languages[0];
 
   const currency = '₹';
-  const pricePerMinute = 2999;
-  const priceFormatted = '₹2,999';
-  const rateText = '₹2,999/min';
+  const pricePerMinute = 2500;
+  const priceFormatted = '₹2,500';
+  const rateText = '₹2,500';
 
   return (
     <LanguageContext.Provider value={{ 

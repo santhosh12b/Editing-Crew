@@ -1,6 +1,6 @@
 export const heroContent = {
   eyebrow: "AI & 3D Video Production for Real Estate in India",
-  headline: "Sell Properties Faster with High-Impact Real Estate Videos — From ₹2,999/Minute.",
+  headline: "Sell Properties Faster with High-Impact Real Estate Videos — Packages From ₹2,500.",
   subheading: "Transform floor plans, architectural CADs, and property photos into cinematic 3D walkthroughs, aerial drone CGI, and high-converting social media reels.",
   description: "From luxury villa tours and apartment walkthroughs to plot layout animations, we handle complete 3D modeling, AI rendering, professional editing, and voiceovers.",
   primaryCta: "Get Your Property Video",

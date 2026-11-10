@@ -28,7 +28,7 @@ export default function HeroSection({ onOpenShowreel, onOpenInquiryModal }) {
   const renderHeadline = (text) => {
     if (!text || typeof text !== 'string') return text;
 
-    const priceRegex = /(?:₹[\s\u00A0]*2,999|₹[\s\u00A0]*2999|2,999[\s\u00A0]*₹|2999[\s\u00A0]*₹|\$[\s\u00A0]*69|69[\s\u00A0]*\$)(?:[\s\u00A0]*\/[\s\u00A0]*(?:Minute|minute|நிமிடத்தில்|நிமிடம்))?\.?/i;
+    const priceRegex = /(?:₹[\s\u00A0]*2,500|₹[\s\u00A0]*2500|₹[\s\u00A0]*2,999|₹[\s\u00A0]*2999)(?:[\s\u00A0]*(?:\/|முதல்|லிருந்து)?[\s\u00A0]*(?:Minute|minute|நிமிடத்தில்|நிமிடம்)?)?\.?/i;
     const match = text.match(priceRegex);
 
     if (match) {

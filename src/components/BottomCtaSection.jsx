@@ -22,7 +22,7 @@ export default function BottomCtaSection({ onOpenInquiryModal }) {
               {cta.description || "Give your apartment, villa, or plotting project the visual impact it deserves. Generate high-intent buyer inquiries and increase site visits with high-converting 3D property videos."}
             </p>
             <p className="text-xs sm:text-sm font-extrabold text-indigo-600">
-              {cta.priceHighlight || `Your first property video starts at just ${priceFormatted} per minute.`}
+              {cta.priceHighlight || `Your first property video starts at just ${priceFormatted}.`}
             </p>
           </div>
 

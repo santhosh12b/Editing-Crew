@@ -18,7 +18,7 @@ export const aiVideosList = [
       ta: "நேரடி படப்பிடிப்பு தேவையில்லை"
     },
     videoUrl: "/video/estate.mp4",
-    rate: "₹2,999/Min."
+    rate: "₹4,000 (1 Min)"
   },
   {
     id: 2,
@@ -35,7 +35,7 @@ export const aiVideosList = [
       ta: "தத்ரூபமான உள்துறை காட்சிகள்"
     },
     videoUrl: "/video/estate1.mp4",
-    rate: "₹2,999/Min."
+    rate: "₹4,000 (1 Min)"
   },
   {
     id: 3,
@@ -52,7 +52,7 @@ export const aiVideosList = [
       ta: "மாஸ்டர் பிளான் மாதிரி"
     },
     videoUrl: "/video/estate2.mp4",
-    rate: "₹2,999/Min."
+    rate: "₹7,000 (2 Min)"
   },
   {
     id: 4,
@@ -69,7 +69,7 @@ export const aiVideosList = [
       ta: "தமிழ் & ஆங்கில குரல் பதிவு"
     },
     videoUrl: "/video/estate3.mp4",
-    rate: "₹2,999/Min."
+    rate: "₹2,500 (30s)"
   }
 ];
 

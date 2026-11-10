@@ -9,12 +9,12 @@ export const translations = {
   en: {
     hero: {
       eyebrow: "AI & 3D Video Production for Real Estate in India",
-      headline: "Sell Properties Faster with High-Impact Real Estate Videos — From ₹2,999/Minute.",
+      headline: "Sell Properties Faster with High-Impact Real Estate Videos — Packages From ₹2,500.",
       subheading: "Transform floor plans, architectural CADs, and property photos into cinematic 3D walkthroughs, aerial drone CGI, and high-converting social media reels.",
       description: "From luxury villa tours and apartment walkthroughs to plot layout animations, we handle complete 3D modeling, AI rendering, professional editing, and voiceovers.",
       primaryCta: "Get Your Property Video",
       secondaryCta: "Explore Property Showcase",
-      badge1: "Just ₹2,999 / Finished Minute",
+      badge1: "Packages Starting at ₹2,500",
       badge2: "48–72h Turnaround",
       badge3: "100% Commercial Ad Rights"
     },
@@ -94,7 +94,7 @@ export const translations = {
     services: {
       badge: "End-to-End Real Estate Media",
       heading: "Comprehensive Video Services for Indian Real Estate",
-      subheading: "From 2D floor plans to broadcast-ready 3D architectural commercials with professional Tamil and English voiceovers at just ₹2,999 per finished minute.",
+      subheading: "From 2D floor plans to broadcast-ready 3D architectural commercials with professional Tamil and English voiceovers starting from just ₹2,500.",
       cta: "Create Video",
       items: [
         {
@@ -167,7 +167,7 @@ export const translations = {
       heading: "Explore Our Property Walkthroughs",
       subheading: "Click on any project to experience full-screen virtual tours with custom sound design and voiceover.",
       duration: "Duration",
-      rate: "₹2,999/min"
+      rate: "From ₹2,500"
     },
     valueProposition: {
       tagline: "The Smarter Alternative To Physical Film Crews",
@@ -180,18 +180,18 @@ export const translations = {
       pillar2Desc: "Receive complete edited property videos in 2 to 3 days instead of waiting weeks for physical videographers and drone teams.",
       pillar2Badge: "10x Faster Turnaround",
       pillar3Title: "Save Up To 80% Cost",
-      pillar3Desc: "Eliminate camera rentals, actor fees, drone hiring, and post-production studio charges with our transparent ₹2,999/min rate.",
+      pillar3Desc: "Eliminate camera rentals, actor fees, drone hiring, and post-production studio charges with our transparent packages starting from ₹2,500.",
       pillar3Badge: "Transparent Pricing"
     },
     pricing: {
-      badge: "Transparent Real Estate Video Pricing",
-      heading: "Complete Property Video Production. One Simple Rate.",
-      subheading: "No need to coordinate between 3D modelers, voiceover artists, video editors, and scriptwriters. We handle the entire property video from start to finish.",
-      pricePrefix: "Just",
-      price: "₹2,999",
-      priceSuffix: "per finished minute",
+      badge: "Pay-Per-Video Packages",
+      heading: "Complete Property Video Production. Transparent Packages.",
+      subheading: "From 30-second social media reels to 10-minute gated community walkthroughs, choose the package that fits your campaign.",
+      pricePrefix: "Starting at",
+      price: "₹2,500",
+      priceSuffix: "for 30s video ad",
       cta: "Order Property Video",
-      subnote: "Starting at ₹2,999 per finished minute. Zero hidden fees. Includes 3D rendering and professional voiceover.",
+      subnote: "Starting at ₹2,500 for a 30s ad. Zero hidden fees. Includes 3D rendering and professional voiceover.",
       features: [
         {
           title: "3D & AI Property Modeling",
@@ -247,15 +247,15 @@ export const translations = {
     faq: {
       badge: "FREQUENTLY ASKED QUESTIONS",
       heading: "Frequently Asked Questions About Property Videos",
-      subheading: "Everything you need to know about our ₹2,999/min real estate video production workflow.",
+      subheading: "Everything you need to know about our real estate video production packages starting from ₹2,500.",
       items: [
         {
           question: "Can you create a walkthrough video if our building is still under construction?",
           answer: "Yes, absolutely! That is our specialty. You only need to provide 2D floor plans, architectural drawings, or basic elevation sketches. We convert them into photorealistic 3D virtual walkthroughs so you can start selling before construction even starts."
         },
         {
-          question: "How does the ₹2,999 per finished minute pricing work?",
-          answer: "It is 100% transparent with no hidden costs. A 60-second video is ₹2,999; a 2-minute comprehensive property tour is 2 × ₹2,999 = ₹5,998. This includes 3D modeling, cinematic camera moves, professional voiceover, background music, graphic titles, and 2 rounds of revisions."
+          question: "How do your video packages and pricing work?",
+          answer: "Our pricing is transparent and pay-per-video: 30-second reels start at ₹2,500; a 1-minute walkthrough is ₹4,000; a 2-minute comprehensive property tour is ₹7,000; up to 10-minute master plan presentations at ₹30,000. All packages include complete 3D modeling, cinematic camera animation, professional voiceover, music, and revision rounds."
         },
         {
           question: "Can we get voiceovers in both English and Tamil?",
@@ -274,12 +274,12 @@ export const translations = {
     bottomCta: {
       heading: "Ready to Accelerate Your Property Sales?",
       description: "Give your apartment, villa, or plotting project the visual impact it deserves. Generate high-intent buyer inquiries and increase site visits with high-converting 3D property videos.",
-      priceHighlight: "Your first property video starts at just ₹2,999 per minute.",
+      priceHighlight: "Your first property video starts at just ₹2,500.",
       buttonText: "Request Property Video",
       subtext: "Share your floor plan or property photos, and let's bring it to life."
     },
     footer: {
-      tagline: "India's premier AI & 3D real estate video production service. High-converting walkthroughs, aerial CGI, and social media reels for builders, developers, and property agents at ₹2,999/min.",
+      tagline: "India's premier AI & 3D real estate video production service. High-converting walkthroughs, aerial CGI, and social media reels for builders, developers, and property agents starting from ₹2,500.",
       col1Title: "Property Video Types",
       col2Title: "Solutions",
       col3Title: "Get Started",
@@ -289,7 +289,7 @@ export const translations = {
     },
     modal: {
       stepOf: "Step {step} of 3",
-      pricePerMin: "₹2,999 / Finished Minute",
+      pricePerMin: "Starting at ₹2,500",
       step1Title: "Select Property Video Type",
       step1Desc: "Which type of property video do you need? Every video includes 3D modeling, cinematic camera movements, professional voiceover, and music.",
       step1Btn: "Continue to Duration & Price",
