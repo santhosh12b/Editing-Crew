@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, CheckCircle2, ArrowRight, ChevronDown, Calendar, MapPin, User, Sparkles } from 'lucide-react';
+import { X, ArrowRight, ChevronDown, MapPin, User } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { GOOGLE_SHEETS_SCRIPT_URL } from '../config/googleSheets';
 import Thanks from './Thanks';
@@ -62,15 +62,7 @@ const packages = [
   }
 ];
 
-const getTodayString = () => {
-  const d = new Date();
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
-
-export default function CreateVideoModal({ isOpen, onClose, initialService }) {
+export default function CreateVideoModal({ isOpen, onClose }) {
   const { currentLang } = useLanguage();
   const isTa = currentLang === 'ta';
   
@@ -83,8 +75,6 @@ export default function CreateVideoModal({ isOpen, onClose, initialService }) {
   const [city, setCity] = useState('');
   const [cityError, setCityError] = useState('');
   const [selectedPackage, setSelectedPackage] = useState('1m');
-  const [startDate, setStartDate] = useState(getTodayString());
-  const [startDateError, setStartDateError] = useState('');
   const [billingType, setBillingType] = useState('one-time'); // 'one-time' or 'monthly'
   
   const [isCountryDropdownOpen, setIsCountryDropdownOpen] = useState(false);
@@ -126,8 +116,6 @@ export default function CreateVideoModal({ isOpen, onClose, initialService }) {
     setPhoneError('');
     setCity('');
     setCityError('');
-    setStartDate(getTodayString());
-    setStartDateError('');
     setBillingType('one-time');
     setSelectedPackage('1m');
     setSelectedCountry(countryList[0]);
@@ -192,12 +180,6 @@ export default function CreateVideoModal({ isOpen, onClose, initialService }) {
       return;
     }
 
-    // 4. Validate Start Date
-    if (!startDate) {
-      setStartDateError(isTa ? 'தொடக்க தேதியை தேர்ந்தெடுக்கவும்.' : 'Please select a start date.');
-      return;
-    }
-
     setIsSubmitting(true);
 
     const now = new Date();
@@ -224,45 +206,59 @@ export default function CreateVideoModal({ isOpen, onClose, initialService }) {
       package: pkgTitle,
       packageDuration: pkgObj.durationEn,
       packagePrice: pkgObj.price,
-      startDate: startDate,
+      startDate: "-",
       billingType: frequencyTitle,
 
-      // Flexible compatibility mappings for any Google Sheets column headers:
+      // Flexible compatibility mappings for Google Sheets headers:
       "Name": name.trim(),
       "Phone Number": textPhone,
       "City": city.trim(),
       "Package": pkgTitle,
-      "Start Date": startDate,
+      "Package Price": pkgObj.price,
+      "Start Date": "-",
       "Monthly or One Time": frequencyTitle,
+      "Frequency (Monthly / One Time)": frequencyTitle,
       "Billing Type": frequencyTitle,
       realPhone: textPhone,
       phoneNumber: textPhone,
       "Phone / WhatsApp": textPhone,
       projectType: `${pkgTitle} [${frequencyTitle}]`,
       duration: pkgObj.durationEn,
-      description: `City: ${city.trim()} | Start Date: ${startDate} | Frequency: ${frequencyTitle}`,
+      description: `City: ${city.trim()} | Package: ${pkgTitle} | Frequency: ${frequencyTitle}`,
       countryCode: selectedCountry.dialCode,
       country: selectedCountry.code
     };
 
-    // Send to Google Sheets web app if URL is configured
+    // Send to Google Sheets web app
     if (GOOGLE_SHEETS_SCRIPT_URL) {
-      fetch(GOOGLE_SHEETS_SCRIPT_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: {
-          'Content-Type': 'text/plain;charset=utf-8'
-        },
-        body: JSON.stringify(payload)
-      }).catch((err) => {
-        console.error('Failed to submit to Google Sheets:', err);
-      });
+      try {
+        fetch(GOOGLE_SHEETS_SCRIPT_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: {
+            'Content-Type': 'text/plain;charset=utf-8'
+          },
+          body: JSON.stringify(payload)
+        }).catch((err) => {
+          console.warn('Google Sheets background submission notice:', err);
+        });
+      } catch (err) {
+        console.warn('Fetch submission error:', err);
+      }
     }
 
     // Trigger Meta Pixel Lead event if loaded
-    if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
+    if (typeof window !== 'undefined') {
       try {
-        window.fbq('track', 'Lead');
+        if (typeof window.fbq === 'function') {
+          window.fbq('track', 'Lead');
+        } else {
+          window._fbq = window._fbq || [];
+          window.fbq = window.fbq || function() {
+            (window.fbq.q = window.fbq.q || []).push(arguments);
+          };
+          window.fbq('track', 'Lead');
+        }
       } catch (e) {
         console.warn('Meta Pixel Lead tracking error:', e);
       }
@@ -298,9 +294,10 @@ export default function CreateVideoModal({ isOpen, onClose, initialService }) {
     phonePlaceholder: "98765 43210",
     cityLabel: isTa ? "நகரம் *" : "City *",
     cityPlaceholder: isTa ? "எ.கா. சென்னை, கோயம்புத்தூர், பெங்களூரு" : "e.g. Chennai, Bangalore, Coimbatore",
-    startDateLabel: isTa ? "தொடக்க தேதி *" : "Start Date *",
-    frequencyLabel: isTa ? "திட்ட கால இடைவெளி (Monthly or One Time) *" : "Monthly or One Time *",
-    packageLabel: isTa ? "வீடியோ பேக்கேஜ் தேர்ந்தெடுக்கவும் *" : "Package *",
+    questionFrequencyLabel: isTa 
+      ? "மாதாந்திரமா அல்லது ஒரு முறை தேவையா? *" 
+      : "Monthly or One-Time Requirement? *",
+    packageLabel: isTa ? "வீடியோ பேக்கேஜ் *" : "Package *",
     submitBtn: isTa ? "வீடியோ கோரிக்கையை சமர்ப்பிக்கவும்" : "Submit Video Order",
     submitting: isTa ? "சமர்ப்பிக்கிறது..." : "Submitting Order...",
     successTitle: isTa ? "கோரிக்கை வெற்றிகரமாகப் பெறப்பட்டது!" : "Order Request Received Successfully!",
@@ -317,7 +314,7 @@ export default function CreateVideoModal({ isOpen, onClose, initialService }) {
       <div className="absolute inset-0" onClick={handleClose}></div>
 
       {/* Modal Dialog Card */}
-      <div className="relative z-10 w-full max-w-[620px] rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-7 shadow-2xl text-slate-900 max-h-[90vh] overflow-y-auto no-scrollbar">
+      <div className="relative z-10 w-full max-w-[560px] rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-7 shadow-2xl text-slate-900 max-h-[92vh] overflow-y-auto no-scrollbar">
         
         {/* Close Button */}
         <button
@@ -358,7 +355,7 @@ export default function CreateVideoModal({ isOpen, onClose, initialService }) {
                       value={name}
                       onChange={handleNameChange}
                       placeholder={strings.namePlaceholder}
-                      className={`w-full pl-9 pr-3.5 py-2.5 sm:py-2.5 rounded-xl border bg-slate-50/50 text-slate-900 placeholder:text-slate-400 text-sm focus:outline-none transition-all ${
+                      className={`w-full pl-9 pr-3.5 py-2.5 rounded-xl border bg-slate-50/50 text-slate-900 placeholder:text-slate-400 text-sm focus:outline-none transition-all ${
                         nameError 
                           ? 'border-red-500 focus:ring-2 focus:ring-red-500/20' 
                           : 'border-slate-200 focus:ring-2 focus:ring-indigo-600/30 focus:border-indigo-600'
@@ -454,7 +451,7 @@ export default function CreateVideoModal({ isOpen, onClose, initialService }) {
                 </div>
               </div>
 
-              {/* Row 2: City & Start Date (2 columns) */}
+              {/* Row 2: City & Monthly/One-Time Question (2 columns) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-3.5">
                 {/* City */}
                 <div>
@@ -468,7 +465,7 @@ export default function CreateVideoModal({ isOpen, onClose, initialService }) {
                       value={city}
                       onChange={handleCityChange}
                       placeholder={strings.cityPlaceholder}
-                      className={`w-full pl-9 pr-3.5 py-2 sm:py-2.5 rounded-xl border bg-slate-50/50 text-slate-900 placeholder:text-slate-400 text-sm focus:outline-none transition-all ${
+                      className={`w-full pl-9 pr-3.5 py-2.5 rounded-xl border bg-slate-50/50 text-slate-900 placeholder:text-slate-400 text-sm focus:outline-none transition-all ${
                         cityError 
                           ? 'border-red-500 focus:ring-2 focus:ring-red-500/20' 
                           : 'border-slate-200 focus:ring-2 focus:ring-indigo-600/30 focus:border-indigo-600'
@@ -481,137 +478,60 @@ export default function CreateVideoModal({ isOpen, onClose, initialService }) {
                   )}
                 </div>
 
-                {/* Start Date */}
+                {/* Monthly or One Time Question Dropdown */}
                 <div>
-                  <label className="block text-xs sm:text-sm font-bold text-slate-800 mb-1">
-                    {strings.startDateLabel}
+                  <label className="block text-xs sm:text-sm font-bold text-slate-800 mb-1 leading-snug">
+                    {strings.questionFrequencyLabel}
                   </label>
                   <div className="relative">
-                    <input
-                      type="date"
-                      required
-                      min={getTodayString()}
-                      value={startDate}
-                      onChange={(e) => {
-                        setStartDate(e.target.value);
-                        if (startDateError) setStartDateError('');
-                      }}
-                      className={`w-full pl-9 pr-3.5 py-2 sm:py-2.5 rounded-xl border bg-slate-50/50 text-slate-900 text-sm focus:outline-none transition-all ${
-                        startDateError 
-                          ? 'border-red-500 focus:ring-2 focus:ring-red-500/20' 
-                          : 'border-slate-200 focus:ring-2 focus:ring-indigo-600/30 focus:border-indigo-600'
-                      }`}
-                    />
-                    <Calendar className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <select
+                      value={billingType}
+                      onChange={(e) => setBillingType(e.target.value)}
+                      className="w-full appearance-none pl-3.5 pr-9 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-900 font-semibold text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600/30 focus:border-indigo-600 transition-all cursor-pointer"
+                    >
+                      <option value="one-time">
+                        {isTa ? "ஒரு முறை திட்டம் (One Time)" : "One-Time Project"}
+                      </option>
+                      <option value="monthly">
+                        {isTa ? "மாதாந்திர சேவை (Monthly)" : "Monthly Subscription"}
+                      </option>
+                    </select>
+                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                   </div>
-                  {startDateError && (
-                    <p className="mt-1 text-xs text-red-600 font-medium">{startDateError}</p>
-                  )}
                 </div>
               </div>
 
-              {/* Row 3: Monthly or One Time (2 Segmented Buttons) */}
+              {/* Row 3: Package Selection Dropdown */}
               <div>
-                <label className="block text-xs sm:text-sm font-bold text-slate-800 mb-1.5">
-                  {strings.frequencyLabel}
-                </label>
-                <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setBillingType('one-time')}
-                    className={`py-2.5 px-3 rounded-xl border text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                      billingType === 'one-time'
-                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm shadow-indigo-600/25'
-                        : 'bg-slate-50/80 border-slate-200 text-slate-700 hover:bg-slate-100 hover:text-slate-900'
-                    }`}
-                  >
-                    <CheckCircle2 className={`w-4 h-4 shrink-0 ${billingType === 'one-time' ? 'opacity-100 text-white' : 'opacity-30 text-slate-400'}`} />
-                    <span>{isTa ? 'ஒரு முறை (One Time)' : 'One Time'}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setBillingType('monthly')}
-                    className={`py-2.5 px-3 rounded-xl border text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                      billingType === 'monthly'
-                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm shadow-indigo-600/25'
-                        : 'bg-slate-50/80 border-slate-200 text-slate-700 hover:bg-slate-100 hover:text-slate-900'
-                    }`}
-                  >
-                    <CheckCircle2 className={`w-4 h-4 shrink-0 ${billingType === 'monthly' ? 'opacity-100 text-white' : 'opacity-30 text-slate-400'}`} />
-                    <span>{isTa ? 'மாதாந்திரம் (Monthly)' : 'Monthly'}</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Row 4: Package Selection (Matching the User's Image) */}
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center justify-between mb-1">
                   <label className="block text-xs sm:text-sm font-bold text-slate-800">
                     {strings.packageLabel}
                   </label>
-                  <span className="text-[10px] sm:text-[11px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200/70 px-2 py-0.5 rounded-full">
-                    {isTa ? "விலைப்பட்டியல்" : "AI Video Production"}
+                  <span className="text-[11px] font-black text-indigo-700 bg-indigo-50 border border-indigo-200/80 px-2.5 py-0.5 rounded-full shadow-2xs">
+                    {packages.find((p) => p.id === selectedPackage)?.price}
                   </span>
                 </div>
 
-                {/* Package Card matching image styling */}
-                <div className="rounded-2xl border border-slate-200 bg-white shadow-xs overflow-hidden divide-y divide-slate-100">
-                  <div className="bg-slate-50/70 px-3.5 py-2 sm:px-4 sm:py-2 flex items-center justify-between border-b border-slate-100">
-                    <div>
-                      <h4 className="text-xs sm:text-sm font-extrabold text-slate-900 font-heading">
-                        AI Video Production
-                      </h4>
-                      <p className="text-[10px] text-slate-500 font-medium">
-                        Pay-per-video packages
-                      </p>
-                    </div>
-                    <span className="text-xs font-black text-indigo-700 bg-white border border-indigo-200 px-2.5 py-0.5 rounded-md shadow-xs">
-                      {packages.find((p) => p.id === selectedPackage)?.price}
-                    </span>
-                  </div>
-
-                  {packages.map((pkg) => {
-                    const isSelected = selectedPackage === pkg.id;
-                    return (
-                      <div
-                        key={pkg.id}
-                        onClick={() => setSelectedPackage(pkg.id)}
-                        className={`px-3.5 py-2 sm:px-4 sm:py-2.5 flex items-center justify-between cursor-pointer transition-all ${
-                          isSelected
-                            ? 'bg-emerald-50/70 border-l-4 border-l-indigo-600'
-                            : 'hover:bg-slate-50/70 border-l-4 border-l-transparent'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2.5">
-                          {/* Radio Indicator */}
-                          <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
-                            isSelected ? 'border-indigo-600 bg-indigo-600' : 'border-slate-300 bg-white'
-                          }`}>
-                            {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                          </div>
-
-                          <div>
-                            <p className={`text-xs sm:text-sm font-extrabold leading-snug ${isSelected ? 'text-indigo-950 font-heading' : 'text-slate-900'}`}>
-                              {isTa ? pkg.durationTa : pkg.durationEn}
-                            </p>
-                            <p className="text-[10px] text-slate-500 font-medium">
-                              {isTa ? pkg.rateTa : pkg.rateEn}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="text-right shrink-0">
-                          <span className={`text-sm sm:text-base font-extrabold tracking-tight ${isSelected ? 'text-indigo-700' : 'text-slate-900'}`}>
-                            {pkg.price}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
+                <div className="relative">
+                  <select
+                    value={selectedPackage}
+                    onChange={(e) => setSelectedPackage(e.target.value)}
+                    className="w-full appearance-none pl-3.5 pr-9 py-2.5 sm:py-3 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-900 font-bold text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600/30 focus:border-indigo-600 transition-all cursor-pointer"
+                  >
+                    {packages.map((pkg) => (
+                      <option key={pkg.id} value={pkg.id}>
+                        {isTa 
+                          ? `${pkg.durationTa} — ${pkg.price} (${pkg.rateTa})` 
+                          : `${pkg.durationEn} — ${pkg.price} (${pkg.rateEn})`
+                        }
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
 
-                {/* Footnote from image */}
-                <p className="text-[10px] text-slate-500 font-medium mt-1.5 leading-relaxed px-0.5">
+                {/* Footnote */}
+                <p className="text-[10px] text-slate-400 font-medium mt-1.5 leading-relaxed px-0.5">
                   {isTa
                     ? "விலைகள் குறிப்பீட்டுக்கானவை. ஸ்கிரிப்ட், வாய்ஸ்ஓவர், எடிட்டிங் மற்றும் திருத்தங்கள் சேவை ஒப்பந்தத்தில் முடிவு செய்யப்படும்."
                     : "Prices are indicative. Define script, voiceover, editing, revisions and delivery specifications in the service agreement."
@@ -620,7 +540,7 @@ export default function CreateVideoModal({ isOpen, onClose, initialService }) {
               </div>
 
               {/* Submit Button */}
-              <div className="pt-2">
+              <div className="pt-1.5">
                 <button
                   type="submit"
                   disabled={isSubmitting}
