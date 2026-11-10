@@ -1,0 +1,13 @@
+{
+  "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/thanks",
+      "destination": "/thanks/index.html"
+    },
+    {
+      "source": "/((?!assets/|fonts/|video/|logo\\.png|favicon\\.ico).*)",
+      "destination": "/index.html"
+    }
+  ]
+}
