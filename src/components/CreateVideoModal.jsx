@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, CheckCircle2, ArrowRight, ChevronDown } from 'lucide-react';
+import { X, CheckCircle2, ArrowRight, ChevronDown, Calendar, MapPin, User, Sparkles } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { GOOGLE_SHEETS_SCRIPT_URL } from '../config/googleSheets';
 import Thanks from './Thanks';
@@ -13,28 +13,85 @@ const countryList = [
   { code: 'GB', dialCode: '+44', name: 'United Kingdom (NRI)', minDigits: 10, maxDigits: 10, placeholder: '7911 123456' }
 ];
 
+// Packages matching the user's uploaded price sheet
+const packages = [
+  {
+    id: '30s',
+    durationEn: '30 seconds',
+    durationTa: '30 வினாடிகள்',
+    rateEn: '₹5,000/min',
+    rateTa: '₹5,000/நிமிடம்',
+    price: '₹2,500',
+    numericPrice: 2500
+  },
+  {
+    id: '1m',
+    durationEn: '1 minute',
+    durationTa: '1 நிமிடம்',
+    rateEn: '₹4,000/min',
+    rateTa: '₹4,000/நிமிடம்',
+    price: '₹4,000',
+    numericPrice: 4000
+  },
+  {
+    id: '2m',
+    durationEn: '2 minutes',
+    durationTa: '2 நிமிடங்கள்',
+    rateEn: '₹3,500/min',
+    rateTa: '₹3,500/நிமிடம்',
+    price: '₹7,000',
+    numericPrice: 7000
+  },
+  {
+    id: '5m',
+    durationEn: '5 minutes',
+    durationTa: '5 நிமிடங்கள்',
+    rateEn: '₹3,200/min',
+    rateTa: '₹3,200/நிமிடம்',
+    price: '₹16,000',
+    numericPrice: 16000
+  },
+  {
+    id: '10m',
+    durationEn: '10 minutes',
+    durationTa: '10 நிமிடங்கள்',
+    rateEn: '₹2,500/min',
+    rateTa: '₹2,500/நிமிடம்',
+    price: '₹30,000',
+    numericPrice: 30000
+  }
+];
+
+const getTodayString = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export default function CreateVideoModal({ isOpen, onClose, initialService }) {
-  const { currentLang, t } = useLanguage();
+  const { currentLang } = useLanguage();
+  const isTa = currentLang === 'ta';
   
+  // Form State Fields
   const [name, setName] = useState('');
   const [nameError, setNameError] = useState('');
-  const [email, setEmail] = useState('');
   const [selectedCountry, setSelectedCountry] = useState(() => countryList[0]);
   const [phone, setPhone] = useState('');
   const [phoneError, setPhoneError] = useState('');
+  const [city, setCity] = useState('');
+  const [cityError, setCityError] = useState('');
+  const [selectedPackage, setSelectedPackage] = useState('1m');
+  const [startDate, setStartDate] = useState(getTodayString());
+  const [startDateError, setStartDateError] = useState('');
+  const [billingType, setBillingType] = useState('one-time'); // 'one-time' or 'monthly'
+  
   const [isCountryDropdownOpen, setIsCountryDropdownOpen] = useState(false);
-  const [projectType, setProjectType] = useState(initialService || '');
-  const [duration, setDuration] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
   const countryDropdownRef = useRef(null);
-
-  useEffect(() => {
-    if (initialService) {
-      setProjectType(initialService);
-    }
-  }, [initialService]);
 
   // Handle escape key
   useEffect(() => {
@@ -65,30 +122,38 @@ export default function CreateVideoModal({ isOpen, onClose, initialService }) {
     setIsSuccess(false);
     setName('');
     setNameError('');
-    setEmail('');
     setPhone('');
     setPhoneError('');
+    setCity('');
+    setCityError('');
+    setStartDate(getTodayString());
+    setStartDateError('');
+    setBillingType('one-time');
+    setSelectedPackage('1m');
     setSelectedCountry(countryList[0]);
     setIsCountryDropdownOpen(false);
     onClose();
   };
 
-  // Strictly disallow numbers in Name input (letters and spaces only)
+  // Strictly disallow numbers in Name input
   const handleNameChange = (e) => {
     const cleanVal = e.target.value.replace(/[0-9]/g, '');
     setName(cleanVal);
     if (nameError) setNameError('');
   };
 
-  // Strictly disallow letters & special characters in Phone input (digits only 0-9)
-  // Strictly block typing after country's max digits (e.g. 10 digits for Germany)
+  // Strictly disallow letters in Phone input
   const handlePhoneChange = (e) => {
-    // Only keep numeric digits 0-9
     const digits = e.target.value.replace(/\D/g, '');
     const maxDigits = selectedCountry?.maxDigits || 10;
-    // Strictly prevent typing after maxDigits
     setPhone(digits.slice(0, maxDigits));
     if (phoneError) setPhoneError('');
+  };
+
+  // Handle City Change
+  const handleCityChange = (e) => {
+    setCity(e.target.value);
+    if (cityError) setCityError('');
   };
 
   const handleSelectCountry = (country) => {
@@ -104,11 +169,9 @@ export default function CreateVideoModal({ isOpen, onClose, initialService }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const isTa = currentLang === 'ta';
-
-    // 1. Validate Name (minimum 2 characters)
+    // 1. Validate Name
     if (!name.trim() || name.trim().length < 2) {
-      setNameError(isTa ? 'உங்கள் பெயரை உள்ளிடவும்.' : 'Please enter your name (letters only).');
+      setNameError(isTa ? 'உங்கள் பெயரை உள்ளிடவும்.' : 'Please enter your name.');
       return;
     }
 
@@ -123,6 +186,18 @@ export default function CreateVideoModal({ isOpen, onClose, initialService }) {
       return;
     }
 
+    // 3. Validate City
+    if (!city.trim() || city.trim().length < 2) {
+      setCityError(isTa ? 'உங்கள் நகரத்தை உள்ளிடவும்.' : 'Please enter your city.');
+      return;
+    }
+
+    // 4. Validate Start Date
+    if (!startDate) {
+      setStartDateError(isTa ? 'தொடக்க தேதியை தேர்ந்தெடுக்கவும்.' : 'Please select a start date.');
+      return;
+    }
+
     setIsSubmitting(true);
 
     const now = new Date();
@@ -134,40 +209,43 @@ export default function CreateVideoModal({ isOpen, onClose, initialService }) {
       minute: '2-digit'
     });
 
-    // Strip leading 0 for final international dial format
     const cleanPhoneDigits = phone.trim().replace(/^0+/, '');
     const fullPhone = `${selectedCountry.dialCode} ${cleanPhoneDigits || phone.trim()}`;
     const textPhone = `'${fullPhone}`;
-    const selectedProjectType = projectType || (isTa ? 'பொதுவான கோரிக்கை' : 'General Enquiry');
-    const selectedDuration = duration || 1;
+    const pkgObj = packages.find((p) => p.id === selectedPackage) || packages[1];
+    const pkgTitle = `${pkgObj.durationEn} (${pkgObj.price})`;
+    const frequencyTitle = billingType === 'monthly' ? 'Monthly' : 'One Time';
 
     const payload = {
       date: formattedDate,
       name: name.trim(),
-      email: email.trim(),
-
-      // Compatibility mapping for existing Apps Script deployment:
-      // (Maps data.projectType to Col D, data.duration to Col E, data.description to Col F)
-      projectType: textPhone,
-      duration: selectedProjectType,
-      description: selectedDuration,
-
-      // Compatibility mapping for updated Apps Script deployment:
-      realPhone: textPhone,
-      realProjectType: selectedProjectType,
-      realDuration: selectedDuration,
       phone: textPhone,
+      city: city.trim(),
+      package: pkgTitle,
+      packageDuration: pkgObj.durationEn,
+      packagePrice: pkgObj.price,
+      startDate: startDate,
+      billingType: frequencyTitle,
+
+      // Flexible compatibility mappings for any Google Sheets column headers:
+      "Name": name.trim(),
+      "Phone Number": textPhone,
+      "City": city.trim(),
+      "Package": pkgTitle,
+      "Start Date": startDate,
+      "Monthly or One Time": frequencyTitle,
+      "Billing Type": frequencyTitle,
+      realPhone: textPhone,
       phoneNumber: textPhone,
       "Phone / WhatsApp": textPhone,
-      "Your Name": name.trim(),
-      "Email Address *": email.trim(),
-      "Project Type": selectedProjectType,
-      "Target Duration (minutes)": selectedDuration,
+      projectType: `${pkgTitle} [${frequencyTitle}]`,
+      duration: pkgObj.durationEn,
+      description: `City: ${city.trim()} | Start Date: ${startDate} | Frequency: ${frequencyTitle}`,
       countryCode: selectedCountry.dialCode,
       country: selectedCountry.code
     };
 
-    // Send to Google Sheets asynchronously in background so user gets instant 1-second response
+    // Send to Google Sheets web app if URL is configured
     if (GOOGLE_SHEETS_SCRIPT_URL) {
       fetch(GOOGLE_SHEETS_SCRIPT_URL, {
         method: 'POST',
@@ -181,7 +259,7 @@ export default function CreateVideoModal({ isOpen, onClose, initialService }) {
       });
     }
 
-    // Trigger Meta Pixel Lead event
+    // Trigger Meta Pixel Lead event if loaded
     if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
       try {
         window.fbq('track', 'Lead');
@@ -190,45 +268,35 @@ export default function CreateVideoModal({ isOpen, onClose, initialService }) {
       }
     }
 
-    // Fast ~700ms loading transition for instant, seamless user experience (< 1 sec)
-    await new Promise((resolve) => setTimeout(resolve, 700));
+    // Smooth transition
+    await new Promise((resolve) => setTimeout(resolve, 600));
 
     setIsSubmitting(false);
     setIsSuccess(true);
   };
 
   const strings = {
-    title: isTa ? "உங்கள் சொத்து வீடியோ திட்டத்தைத் தொடங்குங்கள்" : "Request Your Real Estate Video",
+    title: isTa ? "வீடியோ ஆர்டர் கோரிக்கை" : "Order Your Video Package",
     subtitle: isTa 
-      ? "உங்கள் அடுக்குமாடி குடியிருப்பு, வில்லா அல்லது மனை திட்டம் பற்றி எங்களிடம் கூறுங்கள். வாடிக்கையாளர்களை ஈர்க்கும் சிறந்த 3D வீடியோவை நாங்கள் உருவாக்குகிறோம்."
-      : "Tell us about your residential project, luxury villa, or plot layout. We will turn your floor plans into a high-converting property video.",
-    nameLabel: isTa ? "உங்கள் பெயர் / பில்டர் பெயர் *" : "Your Name / Builder Name *",
-    namePlaceholder: isTa ? "எ.கா. கார்த்திக் (ஸ்ரீ பில்டர்ஸ்)" : "e.g. Ramesh (Krishna Builders)",
-    emailLabel: isTa ? "மின்னஞ்சல் முகவரி *" : "Email Address *",
-    emailPlaceholder: "name@company.com",
-    phoneLabel: isTa ? "தொலைபேசி / WhatsApp எண் *" : "WhatsApp / Phone Number *",
+      ? "உங்கள் விவரங்களை பூர்த்தி செய்து, தேவையான வீடியோ பேக்கேஜைத் தேர்ந்தெடுக்கவும்."
+      : "Fill in your details below and choose a package to get started.",
+    nameLabel: isTa ? "பெயர் *" : "Name *",
+    namePlaceholder: isTa ? "எ.கா. கார்த்திக் குமார்" : "e.g. Ramesh Kumar",
+    phoneLabel: isTa ? "தொலைபேசி / WhatsApp எண் *" : "Phone Number *",
     phonePlaceholder: "98765 43210",
-    projectTypeLabel: isTa ? "சொத்து வகை" : "Property Video Type",
-    projectTypePlaceholder: isTa ? "சொத்து வகையைத் தேர்ந்தெடுக்கவும்" : "Select property video type",
-    durationLabel: isTa ? "இலக்கு கால அளவு (நிமிடங்கள்)" : "Target Duration (minutes)",
-    submitBtn: isTa ? "சொத்து வீடியோ கோரிக்கையை சமர்ப்பிக்கவும்" : "Submit Property Video Enquiry",
-    submitting: isTa ? "சமர்ப்பிக்கிறது..." : "Submitting Property Enquiry...",
-    successTitle: isTa ? "விவரங்கள் வெற்றிகரமாகப் பெறப்பட்டன!" : "Property Enquiry Received Successfully!",
+    cityLabel: isTa ? "நகரம் *" : "City *",
+    cityPlaceholder: isTa ? "எ.கா. சென்னை, கோயம்புத்தூர், பெங்களூரு" : "e.g. Chennai, Bangalore, Coimbatore",
+    startDateLabel: isTa ? "தொடக்க தேதி *" : "Start Date *",
+    frequencyLabel: isTa ? "திட்ட கால இடைவெளி (Monthly or One Time) *" : "Monthly or One Time *",
+    packageLabel: isTa ? "வீடியோ பேக்கேஜ் தேர்ந்தெடுக்கவும் *" : "Package *",
+    submitBtn: isTa ? "வீடியோ கோரிக்கையை சமர்ப்பிக்கவும்" : "Submit Video Order",
+    submitting: isTa ? "சமர்ப்பிக்கிறது..." : "Submitting Order...",
+    successTitle: isTa ? "கோரிக்கை வெற்றிகரமாகப் பெறப்பட்டது!" : "Order Request Received Successfully!",
     successDesc: isTa 
-      ? `நன்றி, ${name || 'வாடிக்கையாளர்'}. எங்கள் ரியல் எஸ்டேட் வீடியோ குழு 12 மணி நேரத்திற்குள் உங்களைத் தொடர்புகொள்ளும்.`
-      : `Thank you, ${name || 'there'}. Our real estate video production directors will reach out via WhatsApp/Phone within 12 hours with concept previews.`,
-    successClose: isTa ? "மூடு" : "Close"
+      ? `நன்றி, ${name || 'வாடிக்கையாளர்'}. எங்கள் வீடியோ தயாரிப்பு குழு 12 மணி நேரத்திற்குள் உங்களைத் தொடர்புகொள்ளும்.`
+      : `Thank you, ${name || 'there'}. Our video production team will reach out via WhatsApp/Phone within 12 hours.`,
+    successClose: isTa ? "முடிந்தது" : "Done"
   };
-
-  // Video categories from services
-  const categories = [
-    { value: 'apartment-walkthrough', label: isTa ? 'அடுக்குமாடி குடியிருப்பு 3D வால்க்த்ரூ' : 'Apartment & Flat 3D Walkthrough' },
-    { value: 'villa-tours', label: isTa ? 'சொகுசு வில்லா & பங்களா இல்லக் காட்சிகள்' : 'Luxury Villa & Bungalow Tours' },
-    { value: 'layout-promo', label: isTa ? 'வீட்டுமனை & லேஅவுட் ட்ரோன் காட்சிகள்' : 'Plot & Layout 3D Drone CGI' },
-    { value: 'reels-ads', label: isTa ? 'இன்ஸ்டாகிராம் ரீல்ஸ் & வாட்ஸ்அப் விளம்பரங்கள்' : 'Property Reels & Instagram Video Ads' },
-    { value: 'commercial-hubs', label: isTa ? 'வணிக வளாக & அலுவலக இடங்கள்' : 'Commercial & Retail Space Promos' },
-    { value: 'multilingual-voice', label: isTa ? 'பன்மொழி வீடியோக்கள் (தமிழ் & ஆங்கிலம்)' : 'Bilingual Commercials (English & Tamil)' }
-  ];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
@@ -237,9 +305,9 @@ export default function CreateVideoModal({ isOpen, onClose, initialService }) {
       <div className="absolute inset-0" onClick={handleClose}></div>
 
       {/* Modal Dialog Card */}
-      <div className="relative z-10 w-full max-w-[620px] rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-8 md:p-9 shadow-2xl text-slate-900 overflow-hidden max-h-[92vh] overflow-y-auto">
+      <div className="relative z-10 w-full max-w-[620px] rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-7 md:p-8 shadow-2xl text-slate-900 overflow-hidden max-h-[92vh] overflow-y-auto">
         
-        {/* Close Button (Circular, matching screenshot) */}
+        {/* Close Button */}
         <button
           type="button"
           onClick={handleClose}
@@ -252,8 +320,8 @@ export default function CreateVideoModal({ isOpen, onClose, initialService }) {
         {!isSuccess ? (
           <div>
             {/* Modal Header */}
-            <div className="pr-10 mb-5 sm:mb-6">
-              <h3 className="text-xl sm:text-2xl md:text-[26px] font-extrabold text-slate-900 font-heading mb-1.5 leading-snug">
+            <div className="pr-10 mb-4 sm:mb-5">
+              <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900 font-heading mb-1 leading-snug">
                 {strings.title}
               </h3>
               <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
@@ -264,48 +332,36 @@ export default function CreateVideoModal({ isOpen, onClose, initialService }) {
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-3.5 sm:space-y-4">
               
-              {/* Row 1: Your Name & Email Address (2 columns) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
+              {/* Row 1: Name & Phone Number (2 columns) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-3.5">
+                {/* Name */}
                 <div>
-                  <label className="block text-xs sm:text-sm font-bold text-slate-800 mb-1.5">
+                  <label className="block text-xs sm:text-sm font-bold text-slate-800 mb-1">
                     {strings.nameLabel}
                   </label>
-                  <input
-                    type="text"
-                    required
-                    value={name}
-                    onChange={handleNameChange}
-                    placeholder={strings.namePlaceholder}
-                    className={`w-full px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-xl border bg-slate-50/50 text-slate-900 placeholder:text-slate-400 text-sm focus:outline-none transition-all ${
-                      nameError 
-                        ? 'border-red-500 focus:ring-2 focus:ring-red-500/20' 
-                        : 'border-slate-200 focus:ring-2 focus:ring-indigo-600/30 focus:border-indigo-600'
-                    }`}
-                  />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      required
+                      value={name}
+                      onChange={handleNameChange}
+                      placeholder={strings.namePlaceholder}
+                      className={`w-full pl-9 pr-3.5 py-2.5 sm:py-2.5 rounded-xl border bg-slate-50/50 text-slate-900 placeholder:text-slate-400 text-sm focus:outline-none transition-all ${
+                        nameError 
+                          ? 'border-red-500 focus:ring-2 focus:ring-red-500/20' 
+                          : 'border-slate-200 focus:ring-2 focus:ring-indigo-600/30 focus:border-indigo-600'
+                      }`}
+                    />
+                    <User className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
                   {nameError && (
                     <p className="mt-1 text-xs text-red-600 font-medium">{nameError}</p>
                   )}
                 </div>
 
+                {/* Phone Number */}
                 <div>
-                  <label className="block text-xs sm:text-sm font-bold text-slate-800 mb-1.5">
-                    {strings.emailLabel}
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder={strings.emailPlaceholder}
-                    className="w-full px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-900 placeholder:text-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600/30 focus:border-indigo-600 transition-all"
-                  />
-                </div>
-              </div>
-
-              {/* Row 2: Phone Number (with Country Code) & Project Type (2 columns) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
-                <div>
-                  <label className="block text-xs sm:text-sm font-bold text-slate-800 mb-1.5">
+                  <label className="block text-xs sm:text-sm font-bold text-slate-800 mb-1">
                     {strings.phoneLabel}
                   </label>
 
@@ -315,19 +371,19 @@ export default function CreateVideoModal({ isOpen, onClose, initialService }) {
                       : 'border-slate-200 focus-within:ring-2 focus-within:ring-indigo-600/30 focus-within:border-indigo-600'
                   }`}>
                     
-                    {/* Country Code Trigger Button */}
+                    {/* Country Code Trigger */}
                     <div className="relative shrink-0" ref={countryDropdownRef}>
                       <button
                         type="button"
                         onClick={() => setIsCountryDropdownOpen(!isCountryDropdownOpen)}
-                        className="h-full flex items-center gap-1.5 px-2.5 sm:px-3 py-2.5 sm:py-3 bg-slate-100/80 hover:bg-slate-200/80 text-slate-900 font-bold text-xs sm:text-sm border-r border-slate-200 rounded-l-xl transition-colors cursor-pointer select-none"
+                        className="h-full flex items-center gap-1 px-2.5 py-2 bg-slate-100/80 hover:bg-slate-200/80 text-slate-900 font-bold text-xs sm:text-sm border-r border-slate-200 rounded-l-xl transition-colors cursor-pointer select-none"
                         aria-label="Select Country Code"
                         aria-expanded={isCountryDropdownOpen}
                       >
-                        <span className="text-[10px] sm:text-xs font-black text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded tracking-wide">
+                        <span className="text-[10px] sm:text-xs font-black text-indigo-700 bg-indigo-50 border border-indigo-200 px-1 py-0.5 rounded tracking-wide">
                           {selectedCountry.code}
                         </span>
-                        <span className="font-extrabold text-slate-800 tracking-tight">
+                        <span className="font-extrabold text-slate-800 tracking-tight text-xs sm:text-sm">
                           {selectedCountry.dialCode}
                         </span>
                         <ChevronDown className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-150 ${isCountryDropdownOpen ? 'rotate-180' : ''}`} />
@@ -335,7 +391,7 @@ export default function CreateVideoModal({ isOpen, onClose, initialService }) {
 
                       {/* Dropdown Popover */}
                       {isCountryDropdownOpen && (
-                        <div className="absolute top-full left-0 mt-1.5 w-64 max-h-56 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-1.5 shadow-2xl z-50 animate-in fade-in-50 zoom-in-95 duration-150">
+                        <div className="absolute top-full left-0 mt-1.5 w-60 max-h-52 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-1.5 shadow-2xl z-50 animate-in fade-in-50 zoom-in-95 duration-150">
                           <div className="space-y-0.5">
                             {countryList.map((c) => {
                               const isSelected = selectedCountry.code === c.code;
@@ -344,24 +400,21 @@ export default function CreateVideoModal({ isOpen, onClose, initialService }) {
                                   key={c.code}
                                   type="button"
                                   onClick={() => handleSelectCountry(c)}
-                                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-colors cursor-pointer ${
+                                  className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
                                     isSelected 
                                       ? 'bg-indigo-50 text-indigo-700 font-bold' 
                                       : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
                                   }`}
                                 >
-                                  <div className="flex items-center gap-2 truncate">
-                                    <span className="text-[10px] font-black text-slate-600 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded">
+                                  <div className="flex items-center gap-1.5 truncate">
+                                    <span className="text-[9px] font-black text-slate-600 bg-slate-100 border border-slate-200 px-1 py-0.5 rounded">
                                       {c.code}
                                     </span>
                                     <span className="truncate">{c.name}</span>
                                   </div>
-                                  <div className="flex items-center gap-1.5 ml-2 shrink-0">
-                                    <span className="text-[10px] text-slate-400 font-medium">({c.minDigits} dig)</span>
-                                    <span className="text-slate-700 font-bold text-xs">
-                                      {c.dialCode}
-                                    </span>
-                                  </div>
+                                  <span className="text-slate-700 font-bold text-xs shrink-0 ml-1">
+                                    {c.dialCode}
+                                  </span>
                                 </button>
                               );
                             })}
@@ -370,7 +423,7 @@ export default function CreateVideoModal({ isOpen, onClose, initialService }) {
                       )}
                     </div>
 
-                    {/* Phone Number Input (Strictly Numeric & Capped at Country maxDigits) */}
+                    {/* Phone Number Input */}
                     <input
                       type="tel"
                       inputMode="numeric"
@@ -380,59 +433,194 @@ export default function CreateVideoModal({ isOpen, onClose, initialService }) {
                       onChange={handlePhoneChange}
                       placeholder={selectedCountry.placeholder || strings.phonePlaceholder}
                       maxLength={selectedCountry?.maxDigits || 10}
-                      className="w-full bg-transparent px-3 py-2.5 sm:py-3 text-slate-900 placeholder:text-slate-400 text-sm focus:outline-none rounded-r-xl"
+                      className="w-full bg-transparent px-3 py-2 text-slate-900 placeholder:text-slate-400 text-sm focus:outline-none rounded-r-xl"
                     />
                   </div>
                   {phoneError && (
                     <p className="mt-1 text-xs text-red-600 font-medium">{phoneError}</p>
                   )}
                 </div>
+              </div>
 
+              {/* Row 2: City & Start Date (2 columns) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-3.5">
+                {/* City */}
                 <div>
-                  <label className="block text-xs sm:text-sm font-bold text-slate-800 mb-1.5">
-                    {strings.projectTypeLabel}
+                  <label className="block text-xs sm:text-sm font-bold text-slate-800 mb-1">
+                    {strings.cityLabel}
                   </label>
-                  <select
-                    value={projectType}
-                    onChange={(e) => setProjectType(e.target.value)}
-                    className="w-full px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600/30 focus:border-indigo-600 transition-all cursor-pointer"
-                  >
-                    <option value="">{strings.projectTypePlaceholder}</option>
-                    {categories.map((cat) => (
-                      <option key={cat.value} value={cat.label}>
-                        {cat.label}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      required
+                      value={city}
+                      onChange={handleCityChange}
+                      placeholder={strings.cityPlaceholder}
+                      className={`w-full pl-9 pr-3.5 py-2 sm:py-2.5 rounded-xl border bg-slate-50/50 text-slate-900 placeholder:text-slate-400 text-sm focus:outline-none transition-all ${
+                        cityError 
+                          ? 'border-red-500 focus:ring-2 focus:ring-red-500/20' 
+                          : 'border-slate-200 focus:ring-2 focus:ring-indigo-600/30 focus:border-indigo-600'
+                      }`}
+                    />
+                    <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+                  {cityError && (
+                    <p className="mt-1 text-xs text-red-600 font-medium">{cityError}</p>
+                  )}
+                </div>
+
+                {/* Start Date */}
+                <div>
+                  <label className="block text-xs sm:text-sm font-bold text-slate-800 mb-1">
+                    {strings.startDateLabel}
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="date"
+                      required
+                      min={getTodayString()}
+                      value={startDate}
+                      onChange={(e) => {
+                        setStartDate(e.target.value);
+                        if (startDateError) setStartDateError('');
+                      }}
+                      className={`w-full pl-9 pr-3.5 py-2 sm:py-2.5 rounded-xl border bg-slate-50/50 text-slate-900 text-sm focus:outline-none transition-all ${
+                        startDateError 
+                          ? 'border-red-500 focus:ring-2 focus:ring-red-500/20' 
+                          : 'border-slate-200 focus:ring-2 focus:ring-indigo-600/30 focus:border-indigo-600'
+                      }`}
+                    />
+                    <Calendar className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+                  {startDateError && (
+                    <p className="mt-1 text-xs text-red-600 font-medium">{startDateError}</p>
+                  )}
                 </div>
               </div>
 
-              {/* Row 3: Target Duration (minutes) */}
+              {/* Row 3: Monthly or One Time (2 Segmented Buttons) */}
               <div>
                 <label className="block text-xs sm:text-sm font-bold text-slate-800 mb-1.5">
-                  {strings.durationLabel}
+                  {strings.frequencyLabel}
                 </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="60"
-                  value={duration}
-                  onChange={(e) => setDuration(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="w-full px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600/30 focus:border-indigo-600 transition-all"
-                />
+                <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setBillingType('one-time')}
+                    className={`py-2.5 px-3 rounded-xl border text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                      billingType === 'one-time'
+                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm shadow-indigo-600/25'
+                        : 'bg-slate-50/80 border-slate-200 text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+                    }`}
+                  >
+                    <CheckCircle2 className={`w-4 h-4 shrink-0 ${billingType === 'one-time' ? 'opacity-100 text-white' : 'opacity-30 text-slate-400'}`} />
+                    <span>{isTa ? 'ஒரு முறை (One Time)' : 'One Time'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBillingType('monthly')}
+                    className={`py-2.5 px-3 rounded-xl border text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                      billingType === 'monthly'
+                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm shadow-indigo-600/25'
+                        : 'bg-slate-50/80 border-slate-200 text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+                    }`}
+                  >
+                    <CheckCircle2 className={`w-4 h-4 shrink-0 ${billingType === 'monthly' ? 'opacity-100 text-white' : 'opacity-30 text-slate-400'}`} />
+                    <span>{isTa ? 'மாதாந்திரம் (Monthly)' : 'Monthly'}</span>
+                  </button>
+                </div>
               </div>
 
-              {/* Row 5: Submit Project Enquiry Button (Brand Indigo instead of orange) */}
+              {/* Row 4: Package Selection (Matching the User's Image) */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs sm:text-sm font-bold text-slate-800">
+                    {strings.packageLabel}
+                  </label>
+                  <span className="text-[10px] sm:text-[11px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200/70 px-2 py-0.5 rounded-full">
+                    {isTa ? "விலைப்பட்டியல்" : "AI Video Production"}
+                  </span>
+                </div>
+
+                {/* Package Card matching image styling */}
+                <div className="rounded-2xl border border-slate-200 bg-white shadow-xs overflow-hidden divide-y divide-slate-100">
+                  <div className="bg-slate-50/70 px-3.5 py-2 sm:px-4 sm:py-2 flex items-center justify-between border-b border-slate-100">
+                    <div>
+                      <h4 className="text-xs sm:text-sm font-extrabold text-slate-900 font-heading">
+                        AI Video Production
+                      </h4>
+                      <p className="text-[10px] text-slate-500 font-medium">
+                        Pay-per-video packages
+                      </p>
+                    </div>
+                    <span className="text-xs font-black text-indigo-700 bg-white border border-indigo-200 px-2.5 py-0.5 rounded-md shadow-xs">
+                      {packages.find((p) => p.id === selectedPackage)?.price}
+                    </span>
+                  </div>
+
+                  {packages.map((pkg) => {
+                    const isSelected = selectedPackage === pkg.id;
+                    return (
+                      <div
+                        key={pkg.id}
+                        onClick={() => setSelectedPackage(pkg.id)}
+                        className={`px-3.5 py-2 sm:px-4 sm:py-2.5 flex items-center justify-between cursor-pointer transition-all ${
+                          isSelected
+                            ? 'bg-emerald-50/70 border-l-4 border-l-indigo-600'
+                            : 'hover:bg-slate-50/70 border-l-4 border-l-transparent'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          {/* Radio Indicator */}
+                          <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
+                            isSelected ? 'border-indigo-600 bg-indigo-600' : 'border-slate-300 bg-white'
+                          }`}>
+                            {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                          </div>
+
+                          <div>
+                            <p className={`text-xs sm:text-sm font-extrabold leading-snug ${isSelected ? 'text-indigo-950 font-heading' : 'text-slate-900'}`}>
+                              {isTa ? pkg.durationTa : pkg.durationEn}
+                            </p>
+                            <p className="text-[10px] text-slate-500 font-medium">
+                              {isTa ? pkg.rateTa : pkg.rateEn}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="text-right shrink-0">
+                          <span className={`text-sm sm:text-base font-extrabold tracking-tight ${isSelected ? 'text-indigo-700' : 'text-slate-900'}`}>
+                            {pkg.price}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Footnote from image */}
+                <p className="text-[10px] text-slate-500 font-medium mt-1.5 leading-relaxed px-0.5">
+                  {isTa
+                    ? "விலைகள் குறிப்பீட்டுக்கானவை. ஸ்கிரிப்ட், வாய்ஸ்ஓவர், எடிட்டிங் மற்றும் திருத்தங்கள் சேவை ஒப்பந்தத்தில் முடிவு செய்யப்படும்."
+                    : "Prices are indicative. Define script, voiceover, editing, revisions and delivery specifications in the service agreement."
+                  }
+                </p>
+              </div>
+
+              {/* Submit Button */}
               <div className="pt-2">
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full py-3.5 sm:py-4 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99] text-white font-extrabold text-sm sm:text-base shadow-lg shadow-indigo-600/25 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70"
+                  className="w-full py-3.5 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99] text-white font-extrabold text-sm sm:text-base shadow-lg shadow-indigo-600/25 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70"
                 >
                   {isSubmitting ? (
                     <span>{strings.submitting}</span>
                   ) : (
-                    <span>{strings.submitBtn}</span>
+                    <>
+                      <span>{strings.submitBtn}</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
                   )}
                 </button>
               </div>
