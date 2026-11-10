@@ -1,7 +1,7 @@
 /**
  * THE EDITING CREW - Google Sheets Lead Capture Backend
  * 
- * Automatically captures customer inquiries from the website form:
+ * Target Google Sheet Columns:
  * - Column A: Date & Time
  * - Column B: Name
  * - Column C: Phone Number
@@ -10,31 +10,13 @@
  * - Column F: Package Price
  * - Column G: Start Date
  * - Column H: Frequency (Monthly / One Time)
- * 
- * -------------------------------------------------------------
- * INSTRUCTIONS TO SETUP / DEPLOY:
- * -------------------------------------------------------------
- * 1. Open Google Sheets (https://sheets.google.com) and create a new sheet (or use existing).
- * 2. In the top menu, click "Extensions" -> "Apps Script".
- * 3. Delete everything in the script editor and paste this entire file.
- * 4. Click the Save icon (Ctrl+S or Cmd+S).
- * 5. Click the blue "Deploy" button at top right -> "New deployment".
- * 6. Under "Select type" (gear icon), select "Web app".
- * 7. Set configuration:
- *    - Description: "Editing Crew Lead Webhook"
- *    - Execute as: "Me (your email)"
- *    - Who has access: "Anyone" (VERY IMPORTANT: must be Anyone so website visitors can submit)
- * 8. Click "Deploy".
- * 9. Authorize access if prompted by Google (Click "Advanced" -> "Go to Untitled project (unsafe)" -> "Allow").
- * 10. Copy the "Web app URL" (it ends with /exec).
- * 11. Open your project's `.env` file and paste the URL:
- *     VITE_GOOGLE_SHEETS_URL=https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec
- * -------------------------------------------------------------
  */
 
 function doPost(e) {
   try {
-    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    // Get primary sheet
+    var sheet = ss.getActiveSheet();
     
     // Parse incoming data safely
     var data = {};
@@ -58,106 +40,60 @@ function doPost(e) {
     var startDate = (data.startDate || data["Start Date"] || "").toString().trim();
     var billingType = (data.billingType || data["Monthly or One Time"] || data["Billing Type"] || "One Time").toString().trim();
 
-    // Prefix phone with a single quote so Google Sheets stores +91... as text instead of formula
+    // Ensure phone starts with single quote so Sheets displays +91 as text
     var formattedPhone = phone ? ("'" + phone.replace(/^'+/, '')) : "";
 
-    var lastCol = sheet.getLastColumn();
+    // Standard 8 Headers
+    var headers = [
+      "Date & Time",
+      "Name",
+      "Phone Number",
+      "City",
+      "Package",
+      "Package Price",
+      "Start Date",
+      "Frequency (Monthly / One Time)"
+    ];
+
     var lastRow = sheet.getLastRow();
 
-    // If sheet is completely empty, automatically generate formatted headers in Row 1
-    if (lastRow === 0 || lastCol === 0) {
-      var defaultHeaders = [
-        "Date & Time",
-        "Name",
-        "Phone Number",
-        "City",
-        "Package",
-        "Package Price",
-        "Start Date",
-        "Frequency (Monthly / One Time)"
-      ];
-      sheet.appendRow(defaultHeaders);
-      
-      // Style headers
-      var headerRange = sheet.getRange(1, 1, 1, defaultHeaders.length);
+    // If sheet is empty OR has old 6-column headers, setup/update Row 1 headers
+    if (lastRow === 0) {
+      sheet.appendRow(headers);
+      var headerRange = sheet.getRange(1, 1, 1, headers.length);
       headerRange.setFontWeight("bold");
-      headerRange.setBackground("#078465"); // Primary brand green
+      headerRange.setBackground("#078465");
       headerRange.setFontColor("#FFFFFF");
-      headerRange.setHorizontalAlignment("center");
       sheet.setFrozenRows(1);
-      
-      sheet.appendRow([
-        date,
-        name,
-        formattedPhone,
-        city,
-        packageTitle,
-        packagePrice,
-        startDate,
-        billingType
-      ]);
     } else {
-      // Smart header-to-column mapping if row 1 headers already exist
-      var headerValues = sheet.getRange(1, 1, 1, Math.min(lastCol, 20)).getValues()[0];
-      var newRow = new Array(headerValues.length);
-      
-      var dateAssigned = false;
-      var nameAssigned = false;
-      var phoneAssigned = false;
-      var cityAssigned = false;
-      var packageAssigned = false;
-      var priceAssigned = false;
-      var startDateAssigned = false;
-      var billingAssigned = false;
+      // Check if Row 1 has fewer than 8 columns or has old headers like "Email" / "Duration"
+      var currentHeaders = sheet.getRange(1, 1, 1, Math.min(sheet.getLastColumn() || 1, 10)).getValues()[0];
+      var hasCityHeader = currentHeaders.some(function(h) { 
+        return (h || "").toString().toLowerCase().indexOf("city") !== -1; 
+      });
 
-      for (var i = 0; i < headerValues.length; i++) {
-        var header = (headerValues[i] || "").toString().toLowerCase().trim();
-
-        if (!header) {
-          newRow[i] = "";
-          continue;
-        }
-
-        if (!dateAssigned && (header.indexOf("date") !== -1 && header.indexOf("start") === -1 && header.indexOf("தொடக்க") === -1)) {
-          newRow[i] = date;
-          dateAssigned = true;
-        } else if (!nameAssigned && (header.indexOf("name") !== -1 || header.indexOf("பெயர்") !== -1)) {
-          newRow[i] = name;
-          nameAssigned = true;
-        } else if (!phoneAssigned && (header.indexOf("phone") !== -1 || header.indexOf("whatsapp") !== -1 || header.indexOf("தொலைபேசி") !== -1)) {
-          newRow[i] = formattedPhone;
-          phoneAssigned = true;
-        } else if (!cityAssigned && (header.indexOf("city") !== -1 || header.indexOf("நகரம்") !== -1)) {
-          newRow[i] = city;
-          cityAssigned = true;
-        } else if (!packageAssigned && (header.indexOf("package") !== -1 || header.indexOf("project") !== -1 || header.indexOf("பேக்கேஜ்") !== -1)) {
-          newRow[i] = packageTitle;
-          packageAssigned = true;
-        } else if (!priceAssigned && (header.indexOf("price") !== -1 || header.indexOf("கட்டணம்") !== -1)) {
-          newRow[i] = packagePrice;
-          priceAssigned = true;
-        } else if (!startDateAssigned && (header.indexOf("start") !== -1 || header.indexOf("தொடக்க") !== -1)) {
-          newRow[i] = startDate;
-          startDateAssigned = true;
-        } else if (!billingAssigned && (header.indexOf("monthly") !== -1 || header.indexOf("frequency") !== -1 || header.indexOf("one time") !== -1 || header.indexOf("மாதாந்திரம்") !== -1)) {
-          newRow[i] = billingType;
-          billingAssigned = true;
-        } else {
-          newRow[i] = "";
-        }
+      if (!hasCityHeader || currentHeaders.length < 8) {
+        // Upgrade Row 1 to the new 8 headers
+        sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+        var headerRange = sheet.getRange(1, 1, 1, headers.length);
+        headerRange.setFontWeight("bold");
+        headerRange.setBackground("#078465");
+        headerRange.setFontColor("#FFFFFF");
+        sheet.setFrozenRows(1);
       }
-
-      // Default positional fallback if headers did not match standard keywords
-      if (!nameAssigned && headerValues.length >= 2) newRow[1] = name;
-      if (!phoneAssigned && headerValues.length >= 3) newRow[2] = formattedPhone;
-      if (!cityAssigned && headerValues.length >= 4) newRow[3] = city;
-      if (!packageAssigned && headerValues.length >= 5) newRow[4] = packageTitle;
-      if (!priceAssigned && headerValues.length >= 6) newRow[5] = packagePrice;
-      if (!startDateAssigned && headerValues.length >= 7) newRow[6] = startDate;
-      if (!billingAssigned && headerValues.length >= 8) newRow[7] = billingType;
-
-      sheet.appendRow(newRow);
     }
+
+    // Append the lead row in exact order
+    sheet.appendRow([
+      date,
+      name,
+      formattedPhone,
+      city,
+      packageTitle,
+      packagePrice,
+      startDate,
+      billingType
+    ]);
 
     return ContentService
       .createTextOutput(JSON.stringify({ 
@@ -176,7 +112,7 @@ function doPost(e) {
   }
 }
 
-// Health check and direct test GET handler
+// GET handler
 function doGet(e) {
   if (e && e.parameter && (e.parameter.name || e.parameter.phone || e.parameter.city)) {
     return doPost(e);
@@ -184,7 +120,7 @@ function doGet(e) {
   return ContentService
     .createTextOutput(JSON.stringify({ 
       status: "active", 
-      service: "The Editing Crew - Real Estate Lead Webhook",
+      service: "The Editing Crew Lead Webhook",
       timestamp: new Date().toISOString()
     }))
     .setMimeType(ContentService.MimeType.JSON);
