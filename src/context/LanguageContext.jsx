@@ -6,17 +6,28 @@ const LanguageContext = createContext();
 export function LanguageProvider({ children }) {
   const [currentLang, setCurrentLang] = useState(() => {
     try {
-      const saved = localStorage.getItem('app_lang');
-      if (saved && (saved === 'en' || saved === 'ta')) {
-        return saved;
+      // 1. If URL has explicit ?lang= parameter
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        const urlLang = params.get('lang');
+        if (urlLang === 'ta' || urlLang === 'en') {
+          return urlLang;
+        }
+      }
+      // 2. Active session preference (if user clicked during this session)
+      const sessionLang = sessionStorage.getItem('app_lang');
+      if (sessionLang === 'en' || sessionLang === 'ta') {
+        return sessionLang;
       }
     } catch (e) {}
+    // Default: English first
     return 'en';
   });
 
   // Update HTML lang and persist
   useEffect(() => {
     try {
+      sessionStorage.setItem('app_lang', currentLang);
       localStorage.setItem('app_lang', currentLang);
     } catch (e) {}
 

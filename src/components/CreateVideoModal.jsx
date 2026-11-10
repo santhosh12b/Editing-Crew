@@ -81,7 +81,7 @@ const billingOptions = [
 ];
 
 export default function CreateVideoModal({ isOpen, onClose }) {
-  const { currentLang } = useLanguage();
+  const { currentLang, setLanguage } = useLanguage();
   const isTa = currentLang === 'ta';
   
   // Form State Fields
@@ -359,7 +359,7 @@ export default function CreateVideoModal({ isOpen, onClose }) {
         <button
           type="button"
           onClick={handleClose}
-          className="absolute top-4 right-4 sm:top-6 sm:right-6 w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors z-20 focus:outline-none cursor-pointer"
+          className="absolute top-4 right-4 sm:top-5 sm:right-5 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors z-20 focus:outline-none cursor-pointer"
           aria-label="Close modal"
         >
           <X className="w-4 h-4 stroke-[2.5]" />
@@ -367,11 +367,40 @@ export default function CreateVideoModal({ isOpen, onClose }) {
 
         {!isSuccess ? (
           <div>
-            {/* Modal Header */}
-            <div className="pr-10 mb-4 sm:mb-5">
-              <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900 font-heading mb-1 leading-snug">
-                {strings.title}
-              </h3>
+            {/* Modal Header Row: Title & 1-Click Language Switcher */}
+            <div className="pr-10 mb-3 sm:mb-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+                <h3 className="text-lg sm:text-2xl font-extrabold text-slate-900 font-heading leading-tight">
+                  {strings.title}
+                </h3>
+                
+                {/* 1-Click Language Switcher */}
+                <div className="inline-flex items-center p-0.5 rounded-full border border-slate-200 bg-slate-100/90 shadow-2xs">
+                  <button
+                    type="button"
+                    onClick={() => setLanguage('en')}
+                    className={`px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs font-bold transition-all cursor-pointer ${
+                      currentLang === 'en'
+                        ? 'bg-white text-indigo-700 shadow-2xs font-black'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    English
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLanguage('ta')}
+                    className={`px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs font-bold transition-all cursor-pointer ${
+                      currentLang === 'ta'
+                        ? 'bg-white text-indigo-700 shadow-2xs font-black'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    தமிழ்
+                  </button>
+                </div>
+              </div>
+
               <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
                 {strings.subtitle}
               </p>
