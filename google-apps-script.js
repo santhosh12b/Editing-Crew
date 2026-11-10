@@ -1,22 +1,35 @@
 /**
- * EDITING CREW - Google Sheets Web App Backend
+ * THE EDITING CREW - Google Sheets Lead Capture Backend
  * 
- * Columns in Google Sheet:
- * Column A: Date
- * Column B: Your Name
- * Column C: Email Address *
- * Column D: Phone / WhatsApp
- * Column E: Project Type
- * Column F: Target Duration (minutes)
+ * Automatically captures customer inquiries from the website form:
+ * - Column A: Date & Time
+ * - Column B: Name
+ * - Column C: Phone Number
+ * - Column D: City
+ * - Column E: Package
+ * - Column F: Package Price
+ * - Column G: Start Date
+ * - Column H: Frequency (Monthly / One Time)
  * 
- * Instructions to Update Google Apps Script:
- * 1. Open your Google Sheet: https://sheets.google.com
- * 2. Click "Extensions" (Erweiterungen) -> "Apps Script"
- * 3. Replace all code in Code.gs with this entire script.
- * 4. Click "Deploy" (Bereitstellen) -> "Manage deployments" (Bereitstellungen verwalten)
- *    - Click the Edit (pencil) icon next to your active Web app deployment
- *    - In "Version", select "New version" (Neue Version)
- *    - Click "Deploy" (Bereitstellen)
+ * -------------------------------------------------------------
+ * INSTRUCTIONS TO SETUP / DEPLOY:
+ * -------------------------------------------------------------
+ * 1. Open Google Sheets (https://sheets.google.com) and create a new sheet (or use existing).
+ * 2. In the top menu, click "Extensions" -> "Apps Script".
+ * 3. Delete everything in the script editor and paste this entire file.
+ * 4. Click the Save icon (Ctrl+S or Cmd+S).
+ * 5. Click the blue "Deploy" button at top right -> "New deployment".
+ * 6. Under "Select type" (gear icon), select "Web app".
+ * 7. Set configuration:
+ *    - Description: "Editing Crew Lead Webhook"
+ *    - Execute as: "Me (your email)"
+ *    - Who has access: "Anyone" (VERY IMPORTANT: must be Anyone so website visitors can submit)
+ * 8. Click "Deploy".
+ * 9. Authorize access if prompted by Google (Click "Advanced" -> "Go to Untitled project (unsafe)" -> "Allow").
+ * 10. Copy the "Web app URL" (it ends with /exec).
+ * 11. Open your project's `.env` file and paste the URL:
+ *     VITE_GOOGLE_SHEETS_URL=https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec
+ * -------------------------------------------------------------
  */
 
 function doPost(e) {
@@ -36,35 +49,39 @@ function doPost(e) {
     }
 
     // Format individual values
-    var date = data.date || Utilities.formatDate(new Date(), "Europe/Berlin", "dd.MM.yyyy, HH:mm");
-    var name = (data.name || data["Your Name"] || "").toString().trim();
-    var email = (data.email || data["Email Address *"] || data["Email"] || "").toString().trim();
-    var phone = (data.realPhone || data.phone || data.phoneNumber || data["Phone / WhatsApp"] || "").toString().trim();
-    var projectType = (data.realProjectType || data["Project Type"] || (data.projectType !== phone ? data.projectType : "") || "General Enquiry").toString().trim();
-    var duration = data.realDuration || data["Target Duration (minutes)"] || data.duration || 1;
+    var date = data.date || Utilities.formatDate(new Date(), "Asia/Kolkata", "dd/MM/yyyy, hh:mm a");
+    var name = (data.name || data["Name"] || data["Your Name"] || "").toString().trim();
+    var phone = (data.phone || data["Phone Number"] || data.realPhone || data["Phone / WhatsApp"] || "").toString().trim();
+    var city = (data.city || data["City"] || "").toString().trim();
+    var packageTitle = (data.package || data["Package"] || data.packageDuration || "").toString().trim();
+    var packagePrice = (data.packagePrice || "").toString().trim();
+    var startDate = (data.startDate || data["Start Date"] || "").toString().trim();
+    var billingType = (data.billingType || data["Monthly or One Time"] || data["Billing Type"] || "One Time").toString().trim();
 
-    // Prefix phone with a single quote so Google Sheets stores +49... as text instead of a formula
+    // Prefix phone with a single quote so Google Sheets stores +91... as text instead of formula
     var formattedPhone = phone ? ("'" + phone.replace(/^'+/, '')) : "";
 
     var lastCol = sheet.getLastColumn();
     var lastRow = sheet.getLastRow();
 
+    // If sheet is completely empty, automatically generate formatted headers in Row 1
     if (lastRow === 0 || lastCol === 0) {
-      // Sheet is completely empty, create default 6 headers
       var defaultHeaders = [
-        "Date",
-        "Your Name",
-        "Email Address *",
-        "Phone / WhatsApp",
-        "Project Type",
-        "Target Duration (minutes)"
+        "Date & Time",
+        "Name",
+        "Phone Number",
+        "City",
+        "Package",
+        "Package Price",
+        "Start Date",
+        "Frequency (Monthly / One Time)"
       ];
       sheet.appendRow(defaultHeaders);
       
       // Style headers
       var headerRange = sheet.getRange(1, 1, 1, defaultHeaders.length);
       headerRange.setFontWeight("bold");
-      headerRange.setBackground("#1E293B"); // Slate-800
+      headerRange.setBackground("#078465"); // Primary brand green
       headerRange.setFontColor("#FFFFFF");
       headerRange.setHorizontalAlignment("center");
       sheet.setFrozenRows(1);
@@ -72,67 +89,72 @@ function doPost(e) {
       sheet.appendRow([
         date,
         name,
-        email,
         formattedPhone,
-        projectType,
-        duration
+        city,
+        packageTitle,
+        packagePrice,
+        startDate,
+        billingType
       ]);
     } else {
-      // Smart Header-to-Column Mapping based on existing Row 1 headers
+      // Smart header-to-column mapping if row 1 headers already exist
       var headerValues = sheet.getRange(1, 1, 1, Math.min(lastCol, 20)).getValues()[0];
       var newRow = new Array(headerValues.length);
       
       var dateAssigned = false;
       var nameAssigned = false;
-      var emailAssigned = false;
       var phoneAssigned = false;
-      var projectAssigned = false;
-      var durationAssigned = false;
+      var cityAssigned = false;
+      var packageAssigned = false;
+      var priceAssigned = false;
+      var startDateAssigned = false;
+      var billingAssigned = false;
 
       for (var i = 0; i < headerValues.length; i++) {
         var header = (headerValues[i] || "").toString().toLowerCase().trim();
 
-        // Skip completely empty headers or old removed fields like "Tell us..." / "Total"
-        if (!header || header.indexOf("tell") !== -1 || header.indexOf("idea") !== -1 || 
-            header.indexOf("product") !== -1 || header.indexOf("total") !== -1 || 
-            header.indexOf("price") !== -1 || header.indexOf("preis") !== -1) {
+        if (!header) {
           newRow[i] = "";
           continue;
         }
 
-        if (!dateAssigned && (header.indexOf("date") !== -1 || header.indexOf("datum") !== -1)) {
+        if (!dateAssigned && (header.indexOf("date") !== -1 && header.indexOf("start") === -1 && header.indexOf("தொடக்க") === -1)) {
           newRow[i] = date;
           dateAssigned = true;
-        } else if (!nameAssigned && header.indexOf("name") !== -1) {
+        } else if (!nameAssigned && (header.indexOf("name") !== -1 || header.indexOf("பெயர்") !== -1)) {
           newRow[i] = name;
           nameAssigned = true;
-        } else if (!emailAssigned && (header.indexOf("email") !== -1 || header.indexOf("e-mail") !== -1 || header.indexOf("mail") !== -1)) {
-          newRow[i] = email;
-          emailAssigned = true;
-        } else if (!phoneAssigned && (header.indexOf("phone") !== -1 || header.indexOf("whatsapp") !== -1 || header.indexOf("telefon") !== -1 || header.indexOf("handy") !== -1 || /(^|[^a-z])tel(\.|$|\s)/i.test(header))) {
+        } else if (!phoneAssigned && (header.indexOf("phone") !== -1 || header.indexOf("whatsapp") !== -1 || header.indexOf("தொலைபேசி") !== -1)) {
           newRow[i] = formattedPhone;
           phoneAssigned = true;
-        } else if (!projectAssigned && (header.indexOf("project") !== -1 || header.indexOf("projekttyp") !== -1)) {
-          newRow[i] = projectType;
-          projectAssigned = true;
-        } else if (!durationAssigned && (header.indexOf("duration") !== -1 || header.indexOf("dauer") !== -1 || header.indexOf("minute") !== -1)) {
-          newRow[i] = duration;
-          durationAssigned = true;
+        } else if (!cityAssigned && (header.indexOf("city") !== -1 || header.indexOf("நகரம்") !== -1)) {
+          newRow[i] = city;
+          cityAssigned = true;
+        } else if (!packageAssigned && (header.indexOf("package") !== -1 || header.indexOf("project") !== -1 || header.indexOf("பேக்கேஜ்") !== -1)) {
+          newRow[i] = packageTitle;
+          packageAssigned = true;
+        } else if (!priceAssigned && (header.indexOf("price") !== -1 || header.indexOf("கட்டணம்") !== -1)) {
+          newRow[i] = packagePrice;
+          priceAssigned = true;
+        } else if (!startDateAssigned && (header.indexOf("start") !== -1 || header.indexOf("தொடக்க") !== -1)) {
+          newRow[i] = startDate;
+          startDateAssigned = true;
+        } else if (!billingAssigned && (header.indexOf("monthly") !== -1 || header.indexOf("frequency") !== -1 || header.indexOf("one time") !== -1 || header.indexOf("மாதாந்திரம்") !== -1)) {
+          newRow[i] = billingType;
+          billingAssigned = true;
         } else {
           newRow[i] = "";
         }
       }
 
-      // Positional guarantee for exact 6 columns if any was missed
-      if (!phoneAssigned && headerValues.length >= 4) {
-        newRow[3] = formattedPhone;
-      }
-      if (!projectAssigned && headerValues.length >= 5) {
-        newRow[4] = projectType;
-      }
-      if (!durationAssigned && headerValues.length >= 6) {
-        newRow[5] = duration;
-      }
+      // Default positional fallback if headers did not match standard keywords
+      if (!nameAssigned && headerValues.length >= 2) newRow[1] = name;
+      if (!phoneAssigned && headerValues.length >= 3) newRow[2] = formattedPhone;
+      if (!cityAssigned && headerValues.length >= 4) newRow[3] = city;
+      if (!packageAssigned && headerValues.length >= 5) newRow[4] = packageTitle;
+      if (!priceAssigned && headerValues.length >= 6) newRow[5] = packagePrice;
+      if (!startDateAssigned && headerValues.length >= 7) newRow[6] = startDate;
+      if (!billingAssigned && headerValues.length >= 8) newRow[7] = billingType;
 
       sheet.appendRow(newRow);
     }
@@ -140,7 +162,7 @@ function doPost(e) {
     return ContentService
       .createTextOutput(JSON.stringify({ 
         status: "success", 
-        message: "Entry recorded successfully" 
+        message: "Enquiry recorded successfully" 
       }))
       .setMimeType(ContentService.MimeType.JSON);
 
@@ -154,15 +176,16 @@ function doPost(e) {
   }
 }
 
-// Support GET requests for health check testing and optional direct parameter submissions
+// Health check and direct test GET handler
 function doGet(e) {
-  if (e && e.parameter && (e.parameter.name || e.parameter.email || e.parameter.phone)) {
+  if (e && e.parameter && (e.parameter.name || e.parameter.phone || e.parameter.city)) {
     return doPost(e);
   }
   return ContentService
     .createTextOutput(JSON.stringify({ 
       status: "active", 
-      service: "Editing Crew Lead Collector" 
+      service: "The Editing Crew - Real Estate Lead Webhook",
+      timestamp: new Date().toISOString()
     }))
     .setMimeType(ContentService.MimeType.JSON);
 }
