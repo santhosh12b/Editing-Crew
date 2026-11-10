@@ -305,7 +305,7 @@ export default function CreateVideoModal({ isOpen, onClose, initialService }) {
       <div className="absolute inset-0" onClick={handleClose}></div>
 
       {/* Modal Dialog Card */}
-      <div className="relative z-10 w-full max-w-[620px] rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-7 md:p-8 shadow-2xl text-slate-900 overflow-hidden max-h-[92vh] overflow-y-auto">
+      <div className="relative z-10 w-full max-w-[620px] rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-7 shadow-2xl text-slate-900 max-h-[90vh] overflow-y-auto no-scrollbar">
         
         {/* Close Button */}
         <button
@@ -391,7 +391,7 @@ export default function CreateVideoModal({ isOpen, onClose, initialService }) {
 
                       {/* Dropdown Popover */}
                       {isCountryDropdownOpen && (
-                        <div className="absolute top-full left-0 mt-1.5 w-60 max-h-52 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-1.5 shadow-2xl z-50 animate-in fade-in-50 zoom-in-95 duration-150">
+                        <div className="absolute top-full left-0 mt-1.5 w-60 max-h-52 overflow-y-auto no-scrollbar rounded-2xl border border-slate-200 bg-white p-1.5 shadow-2xl z-50 animate-in fade-in-50 zoom-in-95 duration-150">
                           <div className="space-y-0.5">
                             {countryList.map((c) => {
                               const isSelected = selectedCountry.code === c.code;
