@@ -8,9 +8,17 @@ export default function Thanks({ onClose, strings }) {
 
   useEffect(() => {
     // Fire Meta Pixel Lead Event when Thanks component loads
-    if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
+    if (typeof window !== 'undefined') {
       try {
-        window.fbq('track', 'Lead');
+        if (typeof window.fbq === 'function') {
+          window.fbq('track', 'Lead');
+        } else {
+          window._fbq = window._fbq || [];
+          window.fbq = window.fbq || function() {
+            (window.fbq.q = window.fbq.q || []).push(arguments);
+          };
+          window.fbq('track', 'Lead');
+        }
       } catch (err) {
         console.warn('Meta Pixel Lead tracking error in Thanks.jsx:', err);
       }
