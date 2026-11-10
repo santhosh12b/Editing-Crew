@@ -17,8 +17,7 @@ export default function App() {
   const [isInquiryModalOpen, setIsInquiryModalOpen] = useState(false);
 
   const isThanksPage = typeof window !== 'undefined' && (
-    window.location.pathname.endsWith('/thanks') || 
-    window.location.pathname.endsWith('/thanks/')
+    window.location.pathname.includes('/thanks')
   );
 
   const handleOpenInquiryModal = () => {
@@ -46,15 +45,24 @@ export default function App() {
   };
 
   if (isThanksPage) {
+    const getHomePath = () => {
+      const path = window.location.pathname;
+      const match = path.match(/^(.*\/crew)(?:\/.*)?$/);
+      if (match) {
+        return `${match[1]}/`;
+      }
+      return '/';
+    };
+
     return (
-      <div className="relative min-h-screen bg-white text-slate-900 overflow-x-hidden selection:bg-indigo-100 selection:text-indigo-800 flex flex-col justify-between">
+      <div className="relative min-h-screen bg-[#FAFAFC] text-slate-900 overflow-x-hidden selection:bg-indigo-100 selection:text-indigo-800 flex flex-col justify-between">
         <Navbar 
           onOpenInquiryModal={handleOpenInquiryModal} 
           onOpenShowreel={handleOpenShowreel}
         />
-        <main className="flex-1 flex items-center justify-center px-4 pt-28 pb-16">
-          <div className="max-w-xl w-full bg-[#FAFAFC] rounded-3xl p-6 sm:p-10 border border-slate-200/80 shadow-xl shadow-slate-200/50 text-center">
-            <Thanks onClose={() => { window.location.href = '/'; }} />
+        <main className="flex-1 flex items-center justify-center px-4 pt-24 pb-16">
+          <div className="max-w-2xl w-full bg-white rounded-3xl p-6 sm:p-10 border border-slate-200/90 shadow-xl shadow-slate-200/40 text-center">
+            <Thanks onClose={() => { window.location.href = getHomePath(); }} />
           </div>
         </main>
         <Footer onOpenInquiryModal={handleOpenInquiryModal} />

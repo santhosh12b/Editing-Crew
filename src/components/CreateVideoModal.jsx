@@ -268,11 +268,23 @@ export default function CreateVideoModal({ isOpen, onClose, initialService }) {
       }
     }
 
-    // Smooth transition
-    await new Promise((resolve) => setTimeout(resolve, 600));
+    // Smooth transition then navigate to thanks page
+    const getThanksPath = () => {
+      if (typeof window === 'undefined') return '/thanks/';
+      const path = window.location.pathname;
+      const match = path.match(/^(.*\/crew)(?:\/.*)?$/);
+      if (match) {
+        return `${match[1]}/thanks/`;
+      }
+      return '/thanks/';
+    };
 
     setIsSubmitting(false);
     setIsSuccess(true);
+
+    setTimeout(() => {
+      window.location.href = getThanksPath();
+    }, 400);
   };
 
   const strings = {
