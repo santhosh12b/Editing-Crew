@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, ArrowRight, ChevronDown, MapPin, User } from 'lucide-react';
+import { X, ArrowRight, ChevronDown, MapPin, User, Check } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { GOOGLE_SHEETS_SCRIPT_URL } from '../config/googleSheets';
 import Thanks from './Thanks';
@@ -31,7 +31,8 @@ const packages = [
     rateEn: '₹4,000/min',
     rateTa: '₹4,000/நிமிடம்',
     price: '₹4,000',
-    numericPrice: 4000
+    numericPrice: 4000,
+    isPopular: true
   },
   {
     id: '2m',
@@ -62,6 +63,23 @@ const packages = [
   }
 ];
 
+const billingOptions = [
+  {
+    id: 'one-time',
+    labelEn: 'One-Time Project',
+    labelTa: 'ஒரு முறை திட்டம் (One Time)',
+    descEn: 'Single video production & delivery',
+    descTa: 'ஒற்றை வீடியோ தயாரிப்பு மற்றும் டெலிவரி'
+  },
+  {
+    id: 'monthly',
+    labelEn: 'Monthly Subscription',
+    labelTa: 'மாதாந்திர சேவை (Monthly)',
+    descEn: 'Ongoing monthly content & reels',
+    descTa: 'தொடர் மாதாந்திர வீடியோக்கள் & ரீல்கள்'
+  }
+];
+
 export default function CreateVideoModal({ isOpen, onClose }) {
   const { currentLang } = useLanguage();
   const isTa = currentLang === 'ta';
@@ -78,27 +96,43 @@ export default function CreateVideoModal({ isOpen, onClose }) {
   const [billingType, setBillingType] = useState('one-time'); // 'one-time' or 'monthly'
   
   const [isCountryDropdownOpen, setIsCountryDropdownOpen] = useState(false);
+  const [isFreqOpen, setIsFreqOpen] = useState(false);
+  const [isPkgOpen, setIsPkgOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
   const countryDropdownRef = useRef(null);
+  const freqDropdownRef = useRef(null);
+  const pkgDropdownRef = useRef(null);
 
   // Handle escape key
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' && isOpen) {
-        handleClose();
+        if (isCountryDropdownOpen || isFreqOpen || isPkgOpen) {
+          setIsCountryDropdownOpen(false);
+          setIsFreqOpen(false);
+          setIsPkgOpen(false);
+        } else {
+          handleClose();
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen]);
+  }, [isOpen, isCountryDropdownOpen, isFreqOpen, isPkgOpen]);
 
-  // Handle click outside country dropdown
+  // Handle click outside dropdowns
   useEffect(() => {
     function handleClickOutside(event) {
       if (countryDropdownRef.current && !countryDropdownRef.current.contains(event.target)) {
         setIsCountryDropdownOpen(false);
+      }
+      if (freqDropdownRef.current && !freqDropdownRef.current.contains(event.target)) {
+        setIsFreqOpen(false);
+      }
+      if (pkgDropdownRef.current && !pkgDropdownRef.current.contains(event.target)) {
+        setIsPkgOpen(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -120,6 +154,8 @@ export default function CreateVideoModal({ isOpen, onClose }) {
     setSelectedPackage('1m');
     setSelectedCountry(countryList[0]);
     setIsCountryDropdownOpen(false);
+    setIsFreqOpen(false);
+    setIsPkgOpen(false);
     onClose();
   };
 
@@ -307,6 +343,9 @@ export default function CreateVideoModal({ isOpen, onClose }) {
     successClose: isTa ? "முடிந்தது" : "Done"
   };
 
+  const selectedPkgObj = packages.find((p) => p.id === selectedPackage) || packages[1];
+  const selectedFreqObj = billingOptions.find((b) => b.id === billingType) || billingOptions[0];
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
       
@@ -479,56 +518,165 @@ export default function CreateVideoModal({ isOpen, onClose }) {
                 </div>
 
                 {/* Monthly or One Time Question Dropdown */}
-                <div>
+                <div className="relative" ref={freqDropdownRef}>
                   <label className="block text-xs sm:text-sm font-bold text-slate-800 mb-1 leading-snug">
                     {strings.questionFrequencyLabel}
                   </label>
-                  <div className="relative">
-                    <select
-                      value={billingType}
-                      onChange={(e) => setBillingType(e.target.value)}
-                      className="w-full appearance-none pl-3.5 pr-9 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-900 font-semibold text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600/30 focus:border-indigo-600 transition-all cursor-pointer"
-                    >
-                      <option value="one-time">
-                        {isTa ? "ஒரு முறை திட்டம் (One Time)" : "One-Time Project"}
-                      </option>
-                      <option value="monthly">
-                        {isTa ? "மாதாந்திர சேவை (Monthly)" : "Monthly Subscription"}
-                      </option>
-                    </select>
-                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  </div>
+                  
+                  {/* Custom Trigger */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsFreqOpen((prev) => !prev);
+                      setIsPkgOpen(false);
+                      setIsCountryDropdownOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border bg-slate-50/50 text-left transition-all cursor-pointer ${
+                      isFreqOpen 
+                        ? 'border-indigo-600 ring-2 ring-indigo-600/20 bg-white' 
+                        : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                    }`}
+                    aria-haspopup="listbox"
+                    aria-expanded={isFreqOpen}
+                  >
+                    <span className="text-xs sm:text-sm font-bold text-slate-900 truncate">
+                      {isTa ? selectedFreqObj.labelTa : selectedFreqObj.labelEn}
+                    </span>
+                    <ChevronDown className={`w-4 h-4 text-slate-400 shrink-0 ml-2 transition-transform duration-200 ${isFreqOpen ? 'rotate-180 text-indigo-600' : ''}`} />
+                  </button>
+
+                  {/* Custom Popover */}
+                  {isFreqOpen && (
+                    <div className="absolute top-full left-0 mt-1.5 w-full rounded-2xl border border-slate-200 bg-white p-1.5 shadow-2xl z-30 animate-in fade-in-50 zoom-in-95 duration-150 space-y-1">
+                      {billingOptions.map((opt) => {
+                        const isSelected = billingType === opt.id;
+                        return (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => {
+                              setBillingType(opt.id);
+                              setIsFreqOpen(false);
+                            }}
+                            className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left transition-all cursor-pointer ${
+                              isSelected
+                                ? 'bg-indigo-50/90 text-indigo-950 font-bold border border-indigo-200/80 shadow-2xs'
+                                : 'hover:bg-slate-50 text-slate-700 border border-transparent'
+                            }`}
+                          >
+                            <div className="pr-2">
+                              <p className="text-xs sm:text-sm font-bold leading-tight">
+                                {isTa ? opt.labelTa : opt.labelEn}
+                              </p>
+                              <p className="text-[10px] text-slate-500 font-medium mt-0.5">
+                                {isTa ? opt.descTa : opt.descEn}
+                              </p>
+                            </div>
+                            {isSelected && (
+                              <Check className="w-4 h-4 text-indigo-600 shrink-0" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Row 3: Package Selection Dropdown */}
-              <div>
+              <div className="relative" ref={pkgDropdownRef}>
                 <div className="flex items-center justify-between mb-1">
                   <label className="block text-xs sm:text-sm font-bold text-slate-800">
                     {strings.packageLabel}
                   </label>
-                  <span className="text-[11px] font-black text-indigo-700 bg-indigo-50 border border-indigo-200/80 px-2.5 py-0.5 rounded-full shadow-2xs">
-                    {packages.find((p) => p.id === selectedPackage)?.price}
+                  <span className="text-[10px] sm:text-[11px] font-semibold text-slate-500 bg-slate-100 border border-slate-200/80 px-2 py-0.5 rounded-full">
+                    AI Video Production
                   </span>
                 </div>
 
-                <div className="relative">
-                  <select
-                    value={selectedPackage}
-                    onChange={(e) => setSelectedPackage(e.target.value)}
-                    className="w-full appearance-none pl-3.5 pr-9 py-2.5 sm:py-3 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-900 font-bold text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600/30 focus:border-indigo-600 transition-all cursor-pointer"
-                  >
-                    {packages.map((pkg) => (
-                      <option key={pkg.id} value={pkg.id}>
-                        {isTa 
-                          ? `${pkg.durationTa} — ${pkg.price} (${pkg.rateTa})` 
-                          : `${pkg.durationEn} — ${pkg.price} (${pkg.rateEn})`
-                        }
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                </div>
+                {/* Custom Trigger */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsPkgOpen((prev) => !prev);
+                    setIsFreqOpen(false);
+                    setIsCountryDropdownOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 sm:py-3 rounded-xl border bg-slate-50/50 text-left transition-all cursor-pointer ${
+                    isPkgOpen
+                      ? 'border-indigo-600 ring-2 ring-indigo-600/20 bg-white'
+                      : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                  }`}
+                  aria-haspopup="listbox"
+                  aria-expanded={isPkgOpen}
+                >
+                  <div className="flex items-center gap-2 truncate">
+                    <span className="text-xs sm:text-sm font-black text-slate-900">
+                      {isTa ? selectedPkgObj.durationTa : selectedPkgObj.durationEn}
+                    </span>
+                    <span className="text-[11px] text-slate-500 font-medium">
+                      ({isTa ? selectedPkgObj.rateTa : selectedPkgObj.rateEn})
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0 ml-2">
+                    <span className="text-xs sm:text-sm font-black text-indigo-700 bg-indigo-50 border border-indigo-200/80 px-2.5 py-0.5 rounded-lg shadow-2xs">
+                      {selectedPkgObj.price}
+                    </span>
+                    <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isPkgOpen ? 'rotate-180 text-indigo-600' : ''}`} />
+                  </div>
+                </button>
+
+                {/* Custom Dropdown Popover */}
+                {isPkgOpen && (
+                  <div className="absolute top-full left-0 mt-1.5 w-full rounded-2xl border border-slate-200 bg-white p-1.5 shadow-2xl z-40 animate-in fade-in-50 zoom-in-95 duration-150 max-h-60 overflow-y-auto no-scrollbar space-y-1">
+                    {packages.map((pkg) => {
+                      const isSelected = selectedPackage === pkg.id;
+                      return (
+                        <button
+                          key={pkg.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedPackage(pkg.id);
+                            setIsPkgOpen(false);
+                          }}
+                          className={`w-full flex items-center justify-between p-2.5 sm:p-3 rounded-xl text-left transition-all cursor-pointer ${
+                            isSelected
+                              ? 'bg-indigo-50/90 text-indigo-950 font-bold border border-indigo-200/80 shadow-2xs'
+                              : 'hover:bg-slate-50 text-slate-700 border border-transparent'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            {/* Radio indicator */}
+                            <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
+                              isSelected ? 'border-indigo-600 bg-indigo-600' : 'border-slate-300 bg-white'
+                            }`}>
+                              {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                            </div>
+
+                            <div>
+                              <p className="text-xs sm:text-sm font-extrabold text-slate-900 leading-tight">
+                                {isTa ? pkg.durationTa : pkg.durationEn}
+                              </p>
+                              <p className="text-[10px] text-slate-500 font-medium">
+                                {isTa ? pkg.rateTa : pkg.rateEn}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className={`text-xs sm:text-sm font-black ${isSelected ? 'text-indigo-700' : 'text-slate-900'}`}>
+                              {pkg.price}
+                            </span>
+                            {isSelected && (
+                              <Check className="w-4 h-4 text-indigo-600 shrink-0" />
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
 
                 {/* Footnote */}
                 <p className="text-[10px] text-slate-400 font-medium mt-1.5 leading-relaxed px-0.5">
